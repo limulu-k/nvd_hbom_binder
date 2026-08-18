@@ -3,13 +3,11 @@
 NVD의 CVE 정보를 정규화하고, 실제 GitHub Repository 및 릴리스 버전과 연결하여 **Repository / Version 단위로 적용 가능한 CVE를 조회하기 위한 파이프라인**
 
 ```text
-NVD
+NVD 데이터 수집
  ↓
-CVE / Product / Version 정규화
+NVD 내 식별자 불일 치 해결
  ↓
-GitHub Repository ↔ Product 매핑
- ↓
-Repository ↔ CVE 매핑
+GitHub Repository ↔ Product&cve 매핑
  ↓
 Clovery 기반 버전 범위 검증
  ↓
