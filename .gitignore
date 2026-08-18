@@ -3,6 +3,7 @@ git/
 
 # data
 data/
+nvd-json-2.0/
 
 # Python cache
 __pycache__/
