@@ -26,7 +26,7 @@ SBOM/HBOM 기반의 취약점 분석에서는 특정 소프트웨어가 **어떤
 예를 들어 NVD에서는 하나의 제품이 다음과 같이 표현될 수 있다
 
 ```text
-vendor = imagemagick or imagemagick_project or ImageMagick , ect,,, 
+vendor = imagemagick or imagemagick_project or ImageMagick , etc,,, 
 product = imagemagick
 ```
 
