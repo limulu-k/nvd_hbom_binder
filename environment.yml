@@ -1,0 +1,21 @@
+name: clovery310
+channels:
+  - defaults
+dependencies:
+  - python=3.10.14
+  - xz
+  - openjdk=21
+  - cmake
+  - cxx-compiler
+  - make
+  - curl
+  - unzip
+  - git
+  - universal-ctags
+  - compilers
+  - libtool
+  - automake
+  - pkg-config
+  - autoconf
+  - matplotlib
+prefix: /home/flba/.conda/envs/clovery310
