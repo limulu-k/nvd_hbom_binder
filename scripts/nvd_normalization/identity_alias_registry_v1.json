@@ -1,0 +1,75 @@
+{
+  "registry_version": "identity-alias-registry-1.0.0",
+  "aliases": [
+    {
+      "scope": "product",
+      "left": {"vendor": "linux", "product": "linux", "part": "*"},
+      "right": {"vendor": "linux", "product": "linux_kernel", "part": "*"},
+      "alias_class": "B2_BRAND_ALIAS",
+      "evidence_tier": "E0",
+      "status": "accepted",
+      "strict_eligible": true,
+      "basis": "migrated_from_v3_2_p1_registry"
+    },
+    {
+      "scope": "product",
+      "left": {"vendor": "microsoft", "product": "iis", "part": "*"},
+      "right": {"vendor": "microsoft", "product": "internet_information_services", "part": "*"},
+      "alias_class": "B1_ACRONYM",
+      "evidence_tier": "E0",
+      "status": "accepted",
+      "strict_eligible": false,
+      "basis": "initial_manual_registry_non_strict"
+    },
+    {
+      "scope": "product",
+      "left": {"vendor": "microsoft", "product": "ie", "part": "*"},
+      "right": {"vendor": "microsoft", "product": "internet_explorer", "part": "*"},
+      "alias_class": "B1_ACRONYM",
+      "evidence_tier": "E0",
+      "status": "accepted",
+      "strict_eligible": false,
+      "basis": "initial_manual_registry_non_strict"
+    },
+    {
+      "scope": "product",
+      "left": {"vendor": "sun", "product": "jre", "part": "*"},
+      "right": {"vendor": "sun", "product": "java_runtime_environment", "part": "*"},
+      "alias_class": "B1_ACRONYM",
+      "evidence_tier": "E0",
+      "status": "accepted",
+      "strict_eligible": false,
+      "basis": "initial_manual_registry_non_strict"
+    },
+    {
+      "scope": "product",
+      "left": {"vendor": "simple_machines", "product": "smf", "part": "*"},
+      "right": {"vendor": "simple_machines", "product": "simple_machines_forum", "part": "*"},
+      "alias_class": "B1_ACRONYM",
+      "evidence_tier": "E0",
+      "status": "accepted",
+      "strict_eligible": false,
+      "basis": "initial_manual_registry_non_strict"
+    }
+  ],
+  "hard_distinct": [
+    {
+      "scope": "product",
+      "left": {"vendor": "redhat", "product": "linux", "part": "*"},
+      "right": {"vendor": "linux", "product": "linux_kernel", "part": "*"},
+      "basis": "distribution_vs_upstream"
+    },
+    {
+      "scope": "product",
+      "left": {"vendor": "iomega", "product": "nas", "part": "*"},
+      "right": {"vendor": "iomega", "product": "network_attached_storage", "part": "*"},
+      "basis": "generic_acronym_anchor"
+    },
+    {
+      "scope": "product",
+      "left": {"vendor": "debian", "product": "apt", "part": "*"},
+      "right": {"vendor": "debian", "product": "advanced_package_tool", "part": "*"},
+      "basis": "package_namespace_collision"
+    }
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "registry_version": "identifier-case-registry-1.1.0",
+  "classifications": [
+    {
+      "axis": "vendor",
+      "class_code": "V3",
+      "subtype": "distributor_packager",
+      "scope": "product",
+      "left": {"vendor": "redhat", "product": "freeipa", "part": "*"},
+      "right": {"vendor": "freeipa", "product": "freeipa", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "distribution vendor versus upstream project"
+    },
+    {
+      "axis": "vendor",
+      "class_code": "V2",
+      "subtype": "ownership_transfer",
+      "scope": "product",
+      "left": {"vendor": "llnl", "product": "slurm", "part": "*"},
+      "right": {"vendor": "schedmd", "product": "slurm", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "historical ownership and maintenance organization change"
+    },
+    {
+      "axis": "vendor",
+      "class_code": "V1",
+      "subtype": "typo",
+      "scope": "product",
+      "left": {"vendor": "opensusue", "product": "open_bulid_service", "part": "*"},
+      "right": {"vendor": "opensuse", "product": "open_build_service", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "known vendor/product typo example"
+    },
+    {
+      "axis": "product",
+      "class_code": "P1",
+      "subtype": "typo",
+      "scope": "product",
+      "left": {"vendor": "opensusue", "product": "open_bulid_service", "part": "*"},
+      "right": {"vendor": "opensuse", "product": "open_build_service", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "known vendor/product typo example"
+    },
+    {
+      "axis": "vendor",
+      "class_code": "V5",
+      "subtype": "homonym_distinct_project",
+      "scope": "product",
+      "left": {"vendor": "openstack", "product": "horizon", "part": "*"},
+      "right": {"vendor": "vmware", "product": "horizon", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "same product label used by unrelated projects"
+    },
+    {
+      "axis": "product",
+      "class_code": "P4",
+      "subtype": "distinct_product",
+      "scope": "product",
+      "left": {"vendor": "openstack", "product": "horizon", "part": "*"},
+      "right": {"vendor": "vmware", "product": "horizon", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "same product label used by unrelated projects"
+    },
+    {
+      "axis": "vendor",
+      "class_code": "V2",
+      "subtype": "project_as_vendor",
+      "scope": "product",
+      "left": {"vendor": "coherence_project", "product": "coherence", "part": "*"},
+      "right": {"vendor": "oracle", "product": "coherence", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "project namespace versus official company"
+    },
+    {
+      "axis": "vendor",
+      "class_code": "V2",
+      "subtype": "repository_owner",
+      "scope": "product",
+      "left": {"vendor": "yhirose", "product": "cpp-httplib", "part": "*"},
+      "right": {"vendor": "cpp_httplib_project", "product": "cpp-httplib", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "repository owner versus project namespace"
+    },
+    {
+      "axis": "vendor",
+      "class_code": "V2",
+      "subtype": "foundation_company",
+      "scope": "product",
+      "left": {"vendor": "automattic", "product": "wordpress", "part": "*"},
+      "right": {"vendor": "wordpress", "product": "wordpress", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "company versus project/community namespace"
+    },
+    {
+      "axis": "vendor",
+      "class_code": "V4",
+      "subtype": "plugin_author",
+      "scope": "product",
+      "left": {"vendor": "greenpau", "product": "caddy-security", "part": "*"},
+      "right": {"vendor": "caddyserver", "product": "caddy", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "plugin author versus parent product vendor"
+    },
+    {
+      "axis": "product",
+      "class_code": "P2",
+      "subtype": "plugin",
+      "scope": "product",
+      "left": {"vendor": "greenpau", "product": "caddy-security", "part": "*"},
+      "right": {"vendor": "caddyserver", "product": "caddy", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "plugin and parent are related but distinct products"
+    },
+    {
+      "axis": "vendor",
+      "class_code": "V1",
+      "subtype": "acronym",
+      "scope": "product",
+      "left": {"vendor": "ibm", "product": "db2", "part": "*"},
+      "right": {"vendor": "international_business_machines", "product": "db2", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "vendor acronym and expanded name"
+    },
+    {
+      "axis": "product",
+      "class_code": "P1",
+      "subtype": "alternate_name",
+      "scope": "product",
+      "left": {"vendor": "contao", "product": "contao", "part": "*"},
+      "right": {"vendor": "contao", "product": "contao_cms", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "same product with optional CMS suffix"
+    },
+    {
+      "axis": "product",
+      "class_code": "P2",
+      "subtype": "server",
+      "scope": "product",
+      "left": {"vendor": "puppet", "product": "puppet", "part": "*"},
+      "right": {"vendor": "puppet", "product": "puppet_server", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "base product and related server artifact"
+    },
+    {
+      "axis": "product",
+      "class_code": "P3",
+      "subtype": "commercial_edition",
+      "scope": "product",
+      "left": {"vendor": "puppet", "product": "puppet", "part": "*"},
+      "right": {"vendor": "puppet", "product": "puppet_enterprise", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "base product and commercial edition"
+    },
+    {
+      "axis": "product",
+      "class_code": "P5",
+      "subtype": "acronym",
+      "scope": "product",
+      "left": {"vendor": "microsoft", "product": "iis", "part": "*"},
+      "right": {"vendor": "microsoft", "product": "internet_information_services", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "product acronym and expanded name"
+    },
+    {
+      "axis": "product",
+      "class_code": "P0",
+      "subtype": "context_dependent",
+      "scope": "product",
+      "left": {"vendor": "zulip", "product": "zulip", "part": "*"},
+      "right": {"vendor": "zulip", "product": "zulip_server", "part": "*"},
+      "confidence": "taxonomy_seed",
+      "basis": "cannot decide alias versus server artifact without context"
+    }
+  ]
+}

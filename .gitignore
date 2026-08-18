@@ -1,0 +1,20 @@
+# hbom db
+git/
+
+# data
+data/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# models
+models/
+
+# result
+workspace/
+
+
+
+# tmp
+tmp/
