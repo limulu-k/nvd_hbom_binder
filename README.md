@@ -178,12 +178,6 @@ data/nvd-cve-history/
 data/nvd-cves.current.jsonl
 ```
 
-자세한 옵션:
-
-```bash
-./01-1_update_nvd_data.sh --help
-```
-
 ---
 
 ## Step 2. CVE Description LLM Parsing
