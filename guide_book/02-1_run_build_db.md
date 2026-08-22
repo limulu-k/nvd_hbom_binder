@@ -21,7 +21,7 @@ data/nvd-cves.current.jsonl
 먼저 NVD current 입력을 준비한다.
 
 ```bash
-cd ~/korea_univ/cve_binder
+cd ~/korea_univ/nvd_hbom_binder
 export NVD_API_KEY='발급받은_API_키'
 ./01-1_update_nvd_data.sh
 ./02-1_run_build_db.sh

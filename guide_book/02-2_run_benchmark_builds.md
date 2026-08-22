@@ -1,8 +1,8 @@
-# `03_run_benchmark_builds.sh` 사용 및 처리 로직
+# `02-2_run_benchmark_builds.sh` 사용 및 처리 로직
 
 ## 1. 목적
 
-`03_run_benchmark_builds.sh`는 두 가지 데이터 축과 두 가지 LLM 축을 조합해 네 개의 applicability DB를 만들고, 동일한 gold set으로 평가·시각화·비교한다.
+`02-2_run_benchmark_builds.sh`는 두 가지 데이터 축과 두 가지 LLM 축을 조합해 네 개의 applicability DB를 만들고, 동일한 gold set으로 평가·시각화·비교한다.
 
 비교 축:
 
@@ -21,14 +21,14 @@
 ## 2. 기본 사용법
 
 ```bash
-cd ~/korea_univ/cve_binder
-./03_run_benchmark_builds.sh
+cd ~/korea_univ/nvd_hbom_binder
+./02-2_run_benchmark_builds.sh
 ```
 
 전체 데이터 대신 빠른 smoke benchmark를 수행하려면:
 
 ```bash
-BENCHMARK_LIMIT=1000 ./03_run_benchmark_builds.sh
+BENCHMARK_LIMIT=1000 ./02-2_run_benchmark_builds.sh
 ```
 
 별도 결과 디렉터리를 사용하려면:
@@ -36,7 +36,7 @@ BENCHMARK_LIMIT=1000 ./03_run_benchmark_builds.sh
 ```bash
 BENCHMARK_DIR=workspace/benchmark_trial \
 BENCHMARK_LIMIT=5000 \
-./03_run_benchmark_builds.sh
+./02-2_run_benchmark_builds.sh
 ```
 
 스크립트는 명령행 인자를 해석하지 않는다. 모든 변경은 환경 변수로 지정한다.

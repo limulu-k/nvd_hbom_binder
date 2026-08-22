@@ -5,10 +5,12 @@ set -Eeuo pipefail
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
-PYTHON_BIN="${PYTHON_BIN:-python}"
-SOURCE_JSONL="${SOURCE_JSONL:-/home/flba/korea_univ/cve_binder_llm/data/nvd-cves.current.jsonl}"
-OSV_DIR="${OSV_DIR:-/home/flba/korea_univ/cve_binder_llm/data/osv}"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+SOURCE_JSONL="${SOURCE_JSONL:-$PROJECT_DIR/data/nvd-cves.current.jsonl}"
+OSV_DIR="${OSV_DIR:-$PROJECT_DIR/data/osv}"
 CLOVERY_DB="${CLOVERY_DB:-}"
+CLOVERY_DIR="${CLOVERY_DIR:-$PROJECT_DIR/../clovery}"
+CLOVERY_JOERN_CMD="${CLOVERY_JOERN_CMD:-}"
 CLOVERY_STEP_TIMEOUT="${CLOVERY_STEP_TIMEOUT:-21600}"
 CLOVERY_MAX_CPG_PAIRS="${CLOVERY_MAX_CPG_PAIRS:-5000}"
 CLOVERY_FULL_CLONE="${CLOVERY_FULL_CLONE:-1}"
@@ -28,10 +30,12 @@ usage() {
         "  ./04_run_clovery_cycle.sh status -v" \
         "" \
         "환경변수:" \
-        "  PYTHON_BIN                 Python 실행 파일 (기본: python)" \
+        "  PYTHON_BIN                 Python 실행 파일 (기본: python3)" \
         "  SOURCE_JSONL               NVD current JSONL 경로" \
         "  OSV_DIR                    OSV mirror 경로" \
         "  CLOVERY_DB                 applicability DB 경로 (미지정 시 cycle 자동 선택)" \
+        "  CLOVERY_DIR                Clovery checkout 경로 (기본: ../clovery)" \
+        "  CLOVERY_JOERN_CMD          Joern 실행 파일 경로 (미지정 시 실행 중 서버 사용)" \
         "  CLOVERY_STEP_TIMEOUT       단계 제한시간 초 (기본: 21600)" \
         "  CLOVERY_MAX_CPG_PAIRS      CPG pair 제한 (기본: 5000)" \
         "  CLOVERY_FULL_CLONE         1이면 --full-clone 사용 (기본: 1)"
@@ -75,17 +79,21 @@ if [[ $# -gt 0 ]]; then
     esac
 fi
 
-command_args=("$PYTHON_BIN" -u "$CYCLE_SCRIPT")
+command_args=(
+    "$PYTHON_BIN" -u "$CYCLE_SCRIPT"
+    --clovery "$CLOVERY_DIR"
+)
 
 case "$subcommand" in
     plan)
         require_file "$SOURCE_JSONL"
-        require_directory "$OSV_DIR"
         command_args+=(
             plan
             --source-jsonl "$SOURCE_JSONL"
-            --osv-dir "$OSV_DIR"
         )
+        if [[ -d "$OSV_DIR" ]]; then
+            command_args+=(--osv-dir "$OSV_DIR")
+        fi
         if [[ -n "$CLOVERY_DB" ]]; then
             require_file "$CLOVERY_DB"
             command_args+=(--db "$CLOVERY_DB")
@@ -93,15 +101,21 @@ case "$subcommand" in
         ;;
     run)
         require_file "$SOURCE_JSONL"
-        require_directory "$OSV_DIR"
+        require_directory "$CLOVERY_DIR"
         command_args+=(
             run
             --retry-failed
             --step-timeout "$CLOVERY_STEP_TIMEOUT"
             --max-cpg-pairs "$CLOVERY_MAX_CPG_PAIRS"
             --source-jsonl "$SOURCE_JSONL"
-            --osv-dir "$OSV_DIR"
         )
+        if [[ -d "$OSV_DIR" ]]; then
+            command_args+=(--osv-dir "$OSV_DIR")
+        fi
+        if [[ -n "$CLOVERY_JOERN_CMD" ]]; then
+            require_file "$CLOVERY_JOERN_CMD"
+            command_args+=(--joern-cmd "$CLOVERY_JOERN_CMD")
+        fi
         if [[ "$CLOVERY_FULL_CLONE" == "1" ]]; then
             command_args+=(--full-clone)
         elif [[ "$CLOVERY_FULL_CLONE" != "0" ]]; then

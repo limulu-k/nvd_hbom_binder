@@ -22,7 +22,7 @@ NVD JSON 2.0 연도별/최근/수정 feed 확인
 Change History API를 갱신하려면 NVD API 키가 필요하다.
 
 ```bash
-cd ~/korea_univ/cve_binder
+cd ~/korea_univ/nvd_hbom_binder
 export NVD_API_KEY='발급받은_API_키'
 ./01-1_update_nvd_data.sh
 ```
@@ -264,5 +264,5 @@ Current JSONL은 임시 파일 작성, flush/`fsync`, 원자 교체 순서로 �
 History 전후 및 LLM 사용 전후 비교가 필요하면:
 
 ```bash
-./03_run_benchmark_builds.sh
+./02-2_run_benchmark_builds.sh
 ```

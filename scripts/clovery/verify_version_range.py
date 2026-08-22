@@ -49,7 +49,9 @@ from typing import Any, Iterable, Mapping, Sequence
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 sys.path.insert(0, str(SCRIPT_DIR))
-sys.path.insert(0, str(REPO_ROOT / "binder-scripts"))
+SCRIPTS_ROOT = REPO_ROOT / "scripts"
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 
 from nvd_normalization.rules import normalize_key  # noqa: E402
 

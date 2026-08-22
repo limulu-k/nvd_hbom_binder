@@ -10,7 +10,7 @@ it as a cycle instead:
 so peak disk is one repository plus its intermediates, and progress survives
 interruption.
 
-Targets come from the applicability DB built by ``binder-scripts``.  Each corpus
+Targets come from the applicability DB built by ``scripts.nvd_normalization``. Each corpus
 repository is resolved to DB products (exact pair, NVD's ``<name>_project``
 convention, then strict identity-cluster expansion), and its CVEs are read from
 ``current_binding`` - so the work set is exactly what the DB binds, not whatever
@@ -58,7 +58,9 @@ from typing import Any, Iterable, Mapping, Sequence
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 sys.path.insert(0, str(SCRIPT_DIR))
-sys.path.insert(0, str(REPO_ROOT / "binder-scripts"))
+SCRIPTS_ROOT = REPO_ROOT / "scripts"
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 
 from nvd2_to_clovery_feed import (  # noqa: E402
     GH_REPO,
@@ -77,7 +79,9 @@ from verify_version_range import verify_repo  # noqa: E402
 from recover_patch_commits import build_validated_feed, osv_target_hints  # noqa: E402
 from nvd_normalization.rules import normalize_key  # noqa: E402
 
-DEFAULT_CLOVERY = REPO_ROOT / "clovery"
+DEFAULT_CLOVERY = Path(
+    os.environ.get("CLOVERY_DIR", str(REPO_ROOT.parent / "clovery"))
+).expanduser()
 DEFAULT_CORPUS = REPO_ROOT / "git" / "sample_c_git.txt"
 DEFAULT_WORK = REPO_ROOT / "workspace" / "clovery"
 DEFAULT_DB_GLOB = "nvd_applicability_v*.sqlite"
@@ -1637,8 +1641,9 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument(
         "--joern-cmd",
         help="path to the joern binary; when given, the cycle restarts the server "
-        "with an empty project store before each repo (recommended for batches)",
-        default="/home/flba/bin/joern/joern-cli/joern"
+        "with an empty project store before each repo (recommended for batches); "
+        "otherwise an already running Joern server is used",
+        default=os.environ.get("CLOVERY_JOERN_CMD") or shutil.which("joern"),
     )
     run.add_argument(
         "--query-timeout",

@@ -19,7 +19,7 @@
 
 ~~~text
 nvd_applicability.sqlite
-  → 02-2_build_git_repo_cve_mapping.sh build
+  → 03_build_git_repo_cve_mapping.sh build
   → repo_cve.sqlite
   → clovery_cycle.py plan/run
   → workspace/clovery/results/*/version_ranges.json
@@ -31,7 +31,7 @@ nvd_applicability.sqlite
 권장 실행 순서는 다음과 같다.
 
 ~~~bash
-./02-2_build_git_repo_cve_mapping.sh build \
+./03_build_git_repo_cve_mapping.sh build \
   --db workspace/nvd_applicability_v10.sqlite \
   --git-dir git \
   --output-db workspace/repo_cve.sqlite \
@@ -39,8 +39,8 @@ nvd_applicability.sqlite
 
 python scripts/clovery/clovery_cycle.py plan \
   --db workspace/nvd_applicability_v10.sqlite \
-  --source-jsonl /home/flba/korea_univ/cve_binder_llm/data/nvd-cves.current.jsonl \
-  --osv-dir /home/flba/korea_univ/cve_binder_llm/data/osv
+  --source-jsonl "$PWD/data/nvd-cves.current.jsonl" \
+  --osv-dir "$PWD/data/osv"
 
 python scripts/clovery/clovery_cycle.py run \
   --step-timeout 21600 \

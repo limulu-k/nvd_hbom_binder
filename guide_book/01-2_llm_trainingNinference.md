@@ -6,7 +6,7 @@
 - `scripts/train_qwen_cve_bindings.py`: CVE 설명에서 vendor, product, version range를 추출하도록 Qwen3 모델을 QLoRA로 추가 학습한다.
 - `scripts/infer_nvd_cve_bindings.py`: 학습된 LoRA adapter를 사용해 NVD JSONL 전체를 파싱한다.
 
-현재 저장소 루트인 `/home/flba/korea_univ/cve_binder_llm`에서 명령을 실행하는 것을 전제로 한다.
+현재 저장소 루트에서 명령을 실행하는 것을 전제로 한다.
 
 ## 1. 전체 흐름
 

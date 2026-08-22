@@ -1,5 +1,6 @@
 name: clovery310
 channels:
+  - conda-forge
   - defaults
 dependencies:
   - python=3.10.14
@@ -18,4 +19,15 @@ dependencies:
   - pkg-config
   - autoconf
   - matplotlib
-prefix: /home/flba/.conda/envs/clovery310
+  - pytest
+  - jq
+  - sqlite
+  - pip
+  - pip:
+      - beautifulsoup4==4.15.0
+      - GitPython==3.1.50
+      - requests==2.34.2
+      - tqdm==4.68.3
+      - py-tlsh==5.0.0
+      - regex==2026.5.9
+      - websockets==10.4

@@ -31,9 +31,9 @@ from typing import Any, Iterable, Mapping, Sequence
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BINDER_ROOT = REPO_ROOT / "binder-scripts"
-if str(BINDER_ROOT) not in sys.path:
-    sys.path.insert(0, str(BINDER_ROOT))
+SCRIPTS_ROOT = REPO_ROOT / "scripts"
+if str(SCRIPTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_ROOT))
 
 from nvd_normalization.rules import normalize_key  # noqa: E402
 from nvd_normalization.versioning import compare_versions, profile_for  # noqa: E402

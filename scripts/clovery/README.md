@@ -2,7 +2,7 @@
 
 Pins exact vulnerable/fixed versions for the C corpus so the results can be
 handed to the SBOM database, using [Clovery](https://github.com/kimdu0/clovery)
-plus the applicability DB built by `binder-scripts`.
+plus the applicability DB built by `scripts.nvd_normalization`.
 
 ```
 scripts/clovery/
@@ -279,12 +279,13 @@ range-verification stages automatically.
 
 ```bash
 # once: make the checkout runnable
-python scripts/clovery/apply_compat_patch.py --clovery clovery
+python scripts/clovery/apply_compat_patch.py --clovery ../clovery
 
 # build the 605-repository direct+OSV upper-bound plan
 python scripts/clovery/clovery_cycle.py plan \
-  --source-jsonl /home/flba/korea_univ/cve_binder_llm/data/nvd-cves.current.jsonl \
-  --osv-dir /home/flba/korea_univ/cve_binder_llm/data/osv
+  --clovery ../clovery \
+  --source-jsonl data/nvd-cves.current.jsonl \
+  --osv-dir data/osv
 
 # Joern must be served FROM the clovery directory, or its workspace/ won't resolve
 cd clovery && joern --server --server-host localhost --server-port 8080 \

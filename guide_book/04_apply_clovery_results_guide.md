@@ -22,7 +22,7 @@ version_ranges.json 검색
 
 ```text
 nvd_applicability DB
-  → 02-2_build_git_repo_cve_mapping.sh build
+  → 03_build_git_repo_cve_mapping.sh build
   → repo_cve.sqlite 생성
   → apply_clovery_results.py
   → Clovery effective view 생성
@@ -31,7 +31,7 @@ nvd_applicability DB
 기본 DB를 다시 build하면 Clovery 전용 테이블과 뷰가 없어지므로 importer를 다시 실행해야 한다.
 
 ```bash
-./02-2_build_git_repo_cve_mapping.sh build \
+./03_build_git_repo_cve_mapping.sh build \
   --db workspace/nvd_applicability_v10.sqlite \
   --git-dir git \
   --output-db workspace/repo_cve.sqlite \
@@ -522,7 +522,7 @@ LIMIT 10;
 
 | 증상 | 원인 | 조치 |
 |---|---|---|
-| `destination is not repo_cve.sqlite` | 필수 기본 테이블 없음 | `02-2_build_git_repo_cve_mapping.sh build` 결과인지 확인 |
+| `destination is not repo_cve.sqlite` | 필수 기본 테이블 없음 | `03_build_git_repo_cve_mapping.sh build` 결과인지 확인 |
 | `unmapped_results > 0` | 결과 repo/CVE와 현재 `repo2cve` identity 불일치 | alias/identity를 검토하거나 non-strict로 나머지 반영 |
 | `skipped_files` 발생 | 쓰는 중 파일, invalid JSON/schema | cycle 완료 후 다시 실행, 파일별 reason 확인 |
 | `database is locked` | 다른 SQLite writer 실행 중 | `--timeout` 상향 또는 writer 종료 대기 |
@@ -549,4 +549,3 @@ python -m unittest \
   prev.scripts.test_query_repo_cve \
   -v
 ```
-

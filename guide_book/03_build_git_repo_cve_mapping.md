@@ -1,8 +1,8 @@
-# `02-2_build_git_repo_cve_mapping.sh` 사용 및 처리 로직
+# `03_build_git_repo_cve_mapping.sh` 사용 및 처리 로직
 
 ## 1. 목적
 
-`02-2_build_git_repo_cve_mapping.sh`는 `scripts/build_git_repo_cve_mapping.py`를 실행해 GitHub의 `owner@repo`와 정규화 DB의 NVD product entity를 보수적으로 연결하고, 해당 product의 current CVE를 조회할 수 있는 독립 SQLite DB를 만든다. 하위 명령을 생략하면 `build`를 기본으로 실행한다.
+`03_build_git_repo_cve_mapping.sh`는 `scripts/build_git_repo_cve_mapping.py`를 실행해 GitHub의 `owner@repo`와 정규화 DB의 NVD product entity를 보수적으로 연결하고, 해당 product의 current CVE를 조회할 수 있는 독립 SQLite DB를 만든다. 하위 명령을 생략하면 `build`를 기본으로 실행한다.
 
 이 프로그램은 두 문제를 분리한다.
 
@@ -16,14 +16,14 @@ Corpus 전체에 fuzzy/Jaccard/LCS 검색을 수행하지 않는다. 이름이 �
 먼저 applicability DB를 만든다.
 
 ```bash
-cd ~/korea_univ/cve_binder
+cd ~/korea_univ/nvd_hbom_binder
 ./02-1_run_build_db.sh
 ```
 
 Repository→CVE DB 생성:
 
 ```bash
-./02-2_build_git_repo_cve_mapping.sh build \
+./03_build_git_repo_cve_mapping.sh build \
   --db workspace/nvd_applicability.sqlite \
   --git-dir git \
   --output-db workspace/repo_cve.sqlite
@@ -32,7 +32,7 @@ Repository→CVE DB 생성:
 Repository 조회:
 
 ```bash
-./02-2_build_git_repo_cve_mapping.sh query \
+./03_build_git_repo_cve_mapping.sh query \
   --mapping-db workspace/repo_cve.sqlite \
   mongodb@mongo
 ```
@@ -40,7 +40,7 @@ Repository 조회:
 Manual-review와 provisional LLM identity 경로를 제외한 결과만 조회:
 
 ```bash
-./02-2_build_git_repo_cve_mapping.sh query \
+./03_build_git_repo_cve_mapping.sh query \
   --mapping-db workspace/repo_cve.sqlite \
   --strict-only \
   --limit 200 \
@@ -50,7 +50,7 @@ Manual-review와 provisional LLM identity 경로를 제외한 결과만 조회:
 전체 통계:
 
 ```bash
-./02-2_build_git_repo_cve_mapping.sh stats \
+./03_build_git_repo_cve_mapping.sh stats \
   --mapping-db workspace/repo_cve.sqlite
 ```
 
@@ -369,7 +369,7 @@ Mapping 품질을 볼 때 전체 행 수만 보지 말고 `methods`, `manual_rev
 ```text
 01-1_update_nvd_data.sh
 → 02-1_run_build_db.sh
-→ 02-2_build_git_repo_cve_mapping.sh build
+→ 03_build_git_repo_cve_mapping.sh build
 → stats로 전체 분포 확인
 → audit rejected/accepted 표본 검토
 → query로 repository 후보 확인
