@@ -21,7 +21,7 @@
 ## 2. 기본 사용법
 
 ```bash
-cd ~/korea_univ/nvd_hbom_binder
+cd cve_binder
 ./02-2_run_benchmark_builds.sh
 ```
 

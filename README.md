@@ -114,7 +114,7 @@ CVE는 공개 이후에도 Reject, Unreject, CPE Configuration 변경 등의 Cha
 
 # 2. Pipeline
 
-전체 실행 순서는 다음과 같습다
+전체 실행 순서는 다음과 같다
 ```text
 [01-1] NVD 데이터 및 Change History 업데이트
               ↓
@@ -308,7 +308,7 @@ CLOVERY_DB="$PWD/workspace/nvd_applicability.sqlite" \
 ./04_run_clovery_cycle.sh plan
 ```
 
-실제 분석 수행: 전체 repo 탐색 시간(3~4일 소요)
+실제 분석 수행: 전체 repo 탐색 시간(rtx2080*7 기준 3~4일 소요)
 
 ```bash
 SOURCE_JSONL="$PWD/data/nvd-cves.current.jsonl" \
@@ -437,6 +437,7 @@ History Current NVD / With LLM
 
 ```text
 guide_book/
+├── 00_repo_cve_db_architecture.md
 ├── 01-1_update_nvd_data.md
 ├── 01-2_llm_trainingNinference.md
 ├── 02-1_run_build_db.md

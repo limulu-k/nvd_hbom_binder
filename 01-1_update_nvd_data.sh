@@ -13,6 +13,8 @@ LOCK_FILE="${NVD_UPDATE_LOCK_FILE:-workspace/update_nvd_data.lock}"
 MERGE_SCRIPT="${NVD_MERGE_SCRIPT:-utils/merge_nvd_cves.py}"
 HISTORY_SCRIPT="${NVD_HISTORY_SCRIPT:-utils/download_nvd_cve_history.py}"
 MAINTENANCE_SCRIPT="${NVD_MAINTENANCE_SCRIPT:-utils/maintain_nvd_cves.py}"
+LLM_UPDATE_SCRIPT="${NVD_LLM_UPDATE_SCRIPT:-utils/update_nvd_llm_parsed.py}"
+LLM_INFERENCE_SCRIPT="${NVD_LLM_INFERENCE_SCRIPT:-scripts/infer_nvd_cve_bindings.py}"
 HISTORY_DIR="${NVD_HISTORY_DIR:-data/nvd-cve-history}"
 HISTORY_API_KEY_ENV="${NVD_HISTORY_API_KEY_ENV:-NVD_API_KEY}"
 HISTORY_PAGE_SIZE="${NVD_HISTORY_PAGE_SIZE:-5000}"
@@ -21,8 +23,17 @@ CURRENT_OUTPUT="${NVD_CURRENT_JSONL_FILE:-data/nvd-cves.current.jsonl}"
 CURRENT_REPORT="${NVD_CURRENT_REPORT_FILE:-data/nvd-cves.current.report.json}"
 CURRENT_QUARANTINE="${NVD_CURRENT_QUARANTINE_FILE:-data/nvd-cves.current.quarantine.jsonl}"
 SNAPSHOT_AS_OF="${NVD_SNAPSHOT_AS_OF:-}"
+LLM_INPUT="${NVD_LLM_INPUT_FILE:-}"
+LLM_PARSED_OUTPUT="${NVD_LLM_PARSED_FILE:-data/nvd-cves-desc_parse.jsonl}"
+LLM_FAIL_OUTPUT="${NVD_LLM_FAIL_FILE:-data/nvd-cves-desc_parse-fail.jsonl}"
+LLM_ADAPTER="${NVD_LLM_ADAPTER:-models/qwen3-merged800-20260723-155213}"
+LLM_NPROC_PER_NODE="${NVD_LLM_NPROC_PER_NODE:-1}"
+LLM_BATCH_SIZE="${NVD_LLM_BATCH_SIZE:-2}"
+LLM_MAX_INPUT_TOKENS="${NVD_LLM_MAX_INPUT_TOKENS:-4096}"
+LLM_MAX_NEW_TOKENS="${NVD_LLM_MAX_NEW_TOKENS:-512}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 CURL_BIN="${CURL_BIN:-curl}"
+TORCHRUN_BIN="${TORCHRUN_BIN:-torchrun}"
 
 FORCE_DOWNLOAD=0
 FORCE_MERGE=0
@@ -30,6 +41,7 @@ MERGE_JSONL=1
 UPDATE_HISTORY=1
 BUILD_CURRENT=1
 VERIFY_HISTORY=0
+UPDATE_LLM_PARSED=0
 CURRENT_EXTRA_INPUTS=()
 
 usage() {
@@ -72,6 +84,19 @@ Options:
   --current-input FILE Add a supplemental current CVE JSONL input; repeatable
   --snapshot-as-of TS  Explicit CVE snapshot coverage timestamp. By default,
                        derive the earliest timestamp from feed metadata.
+  --update-llm-parsed  Opt in to incremental LLM inference after current JSONL
+                       maintenance, then atomically update parsed/failure data
+  --llm-input FILE     NVD JSONL to compare and parse (default: current-output)
+  --llm-parsed-output FILE
+                       Complete parsed JSONL updated in place
+                       (default: data/nvd-cves-desc_parse.jsonl)
+  --llm-fail-output FILE
+                       Non-ok parsed result subset
+                       (default: data/nvd-cves-desc_parse-fail.jsonl)
+  --llm-adapter DIR    Trained Qwen LoRA adapter directory
+  --llm-nproc-per-node N
+                       Number of inference GPU processes (default: 1)
+  --llm-batch-size N   Inference batch size per GPU (default: 2)
   -h, --help           Show this help
 
 Environment variables with equivalent defaults:
@@ -80,7 +105,10 @@ Environment variables with equivalent defaults:
   NVD_MAINTENANCE_SCRIPT, NVD_HISTORY_DIR, NVD_HISTORY_API_KEY_ENV,
   NVD_HISTORY_PAGE_SIZE, NVD_HISTORY_REQUEST_DELAY, NVD_CURRENT_JSONL_FILE,
   NVD_CURRENT_REPORT_FILE, NVD_CURRENT_QUARANTINE_FILE, NVD_SNAPSHOT_AS_OF,
-  PYTHON_BIN, CURL_BIN
+  NVD_LLM_UPDATE_SCRIPT, NVD_LLM_INFERENCE_SCRIPT, NVD_LLM_INPUT_FILE,
+  NVD_LLM_PARSED_FILE, NVD_LLM_FAIL_FILE, NVD_LLM_ADAPTER,
+  NVD_LLM_NPROC_PER_NODE, NVD_LLM_BATCH_SIZE, NVD_LLM_MAX_INPUT_TOKENS,
+  NVD_LLM_MAX_NEW_TOKENS, PYTHON_BIN, CURL_BIN, TORCHRUN_BIN
 EOF
 }
 
@@ -180,6 +208,40 @@ while (($#)); do
             SNAPSHOT_AS_OF="$2"
             shift 2
             ;;
+        --update-llm-parsed)
+            UPDATE_LLM_PARSED=1
+            shift
+            ;;
+        --llm-input)
+            [[ $# -ge 2 ]] || { echo "[ERROR] --llm-input requires a value" >&2; exit 2; }
+            LLM_INPUT="$2"
+            shift 2
+            ;;
+        --llm-parsed-output)
+            [[ $# -ge 2 ]] || { echo "[ERROR] --llm-parsed-output requires a value" >&2; exit 2; }
+            LLM_PARSED_OUTPUT="$2"
+            shift 2
+            ;;
+        --llm-fail-output)
+            [[ $# -ge 2 ]] || { echo "[ERROR] --llm-fail-output requires a value" >&2; exit 2; }
+            LLM_FAIL_OUTPUT="$2"
+            shift 2
+            ;;
+        --llm-adapter)
+            [[ $# -ge 2 ]] || { echo "[ERROR] --llm-adapter requires a value" >&2; exit 2; }
+            LLM_ADAPTER="$2"
+            shift 2
+            ;;
+        --llm-nproc-per-node)
+            [[ $# -ge 2 ]] || { echo "[ERROR] --llm-nproc-per-node requires a value" >&2; exit 2; }
+            LLM_NPROC_PER_NODE="$2"
+            shift 2
+            ;;
+        --llm-batch-size)
+            [[ $# -ge 2 ]] || { echo "[ERROR] --llm-batch-size requires a value" >&2; exit 2; }
+            LLM_BATCH_SIZE="$2"
+            shift 2
+            ;;
         -h|--help)
             usage
             exit 0
@@ -191,6 +253,10 @@ while (($#)); do
             ;;
     esac
 done
+
+if [[ -z "$LLM_INPUT" ]]; then
+    LLM_INPUT="$CURRENT_OUTPUT"
+fi
 
 if [[ ! "$START_YEAR" =~ ^[0-9]{4}$ || ! "$END_YEAR" =~ ^[0-9]{4}$ ]]; then
     echo "[ERROR] start/end year must be four decimal digits" >&2
@@ -212,6 +278,24 @@ fi
 if [[ ! "$HISTORY_API_KEY_ENV" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
     echo "[ERROR] invalid history API-key environment variable name" >&2
     exit 2
+fi
+if ((UPDATE_LLM_PARSED)); then
+    if [[ ! "$LLM_NPROC_PER_NODE" =~ ^[1-9][0-9]*$ ]]; then
+        echo "[ERROR] llm nproc per node must be a positive integer" >&2
+        exit 2
+    fi
+    if [[ ! "$LLM_BATCH_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+        echo "[ERROR] llm batch size must be a positive integer" >&2
+        exit 2
+    fi
+    if [[ ! "$LLM_MAX_INPUT_TOKENS" =~ ^[0-9]+$ ]] || ((10#$LLM_MAX_INPUT_TOKENS < 256)); then
+        echo "[ERROR] NVD_LLM_MAX_INPUT_TOKENS must be at least 256" >&2
+        exit 2
+    fi
+    if [[ ! "$LLM_MAX_NEW_TOKENS" =~ ^[0-9]+$ ]] || ((10#$LLM_MAX_NEW_TOKENS < 16)); then
+        echo "[ERROR] NVD_LLM_MAX_NEW_TOKENS must be at least 16" >&2
+        exit 2
+    fi
 fi
 
 for command in "$CURL_BIN" gzip sha256sum stat flock "$PYTHON_BIN"; do
@@ -240,6 +324,24 @@ if ((BUILD_CURRENT)) && ! "$PYTHON_BIN" "$MAINTENANCE_SCRIPT" --help >/dev/null;
     echo "[ERROR] current maintenance script failed its import/startup check: $MAINTENANCE_SCRIPT" >&2
     exit 2
 fi
+if ((UPDATE_LLM_PARSED)); then
+    if [[ ! -r "$LLM_UPDATE_SCRIPT" ]]; then
+        echo "[ERROR] LLM update script is not readable: $LLM_UPDATE_SCRIPT" >&2
+        exit 2
+    fi
+    if [[ ! -r "$LLM_INFERENCE_SCRIPT" ]]; then
+        echo "[ERROR] LLM inference script is not readable: $LLM_INFERENCE_SCRIPT" >&2
+        exit 2
+    fi
+    if [[ ! -d "$LLM_ADAPTER" ]]; then
+        echo "[ERROR] LLM adapter directory does not exist: $LLM_ADAPTER" >&2
+        exit 2
+    fi
+    if ((LLM_NPROC_PER_NODE > 1)) && ! command -v "$TORCHRUN_BIN" >/dev/null 2>&1; then
+        echo "[ERROR] torchrun command not found: $TORCHRUN_BIN" >&2
+        exit 2
+    fi
+fi
 for extra_input in "${CURRENT_EXTRA_INPUTS[@]}"; do
     if [[ ! -r "$extra_input" ]]; then
         echo "[ERROR] supplemental current input is not readable: $extra_input" >&2
@@ -256,6 +358,9 @@ mkdir -p \
     "$(dirname "$CURRENT_OUTPUT")" \
     "$(dirname "$CURRENT_REPORT")" \
     "$(dirname "$CURRENT_QUARANTINE")"
+if ((UPDATE_LLM_PARSED)); then
+    mkdir -p "$(dirname "$LLM_PARSED_OUTPUT")" "$(dirname "$LLM_FAIL_OUTPUT")"
+fi
 
 exec 9>"$LOCK_FILE"
 echo "[lock] waiting for $LOCK_FILE"
@@ -554,6 +659,60 @@ else
     fi
     echo "[current] rebuilding $CURRENT_OUTPUT"
     "${current_command[@]}"
+fi
+
+if ((UPDATE_LLM_PARSED)); then
+    if [[ ! -r "$LLM_INPUT" ]]; then
+        echo "[ERROR] LLM comparison input is not readable: $LLM_INPUT" >&2
+        exit 1
+    fi
+    llm_pending="$stage_dir/nvd-cves.llm-pending.jsonl"
+    llm_manifest="$stage_dir/nvd-cves.llm-update.manifest.json"
+    llm_incremental="$stage_dir/nvd-cves.llm-incremental.jsonl"
+    echo "[llm] preparing incremental input from $LLM_INPUT"
+    "$PYTHON_BIN" "$LLM_UPDATE_SCRIPT" prepare \
+        --input "$LLM_INPUT" \
+        --parsed "$LLM_PARSED_OUTPUT" \
+        --pending "$llm_pending" \
+        --manifest "$llm_manifest"
+    llm_pending_count="$(wc -l < "$llm_pending")"
+    echo "[llm] pending_records=$llm_pending_count"
+    if ((llm_pending_count > 0)); then
+        if ((LLM_NPROC_PER_NODE == 1)); then
+            llm_command=("$PYTHON_BIN" -u "$LLM_INFERENCE_SCRIPT")
+        else
+            llm_command=(
+                "$TORCHRUN_BIN"
+                --standalone
+                "--nproc-per-node=$LLM_NPROC_PER_NODE"
+                "$LLM_INFERENCE_SCRIPT"
+            )
+        fi
+        llm_command+=(
+            --input "$llm_pending"
+            --adapter "$LLM_ADAPTER"
+            --output "$llm_incremental"
+            --batch-size "$LLM_BATCH_SIZE"
+            --max-input-tokens "$LLM_MAX_INPUT_TOKENS"
+            --max-new-tokens "$LLM_MAX_NEW_TOKENS"
+        )
+        echo "[llm] running inference with $LLM_NPROC_PER_NODE GPU process(es)"
+        "${llm_command[@]}"
+    else
+        : >"$llm_incremental"
+        echo "[llm] no new or changed descriptions; inference skipped"
+    fi
+    echo "[llm] applying incremental results to $LLM_PARSED_OUTPUT"
+    "$PYTHON_BIN" "$LLM_UPDATE_SCRIPT" apply \
+        --input "$LLM_INPUT" \
+        --parsed "$LLM_PARSED_OUTPUT" \
+        --pending "$llm_pending" \
+        --manifest "$llm_manifest" \
+        --inference "$llm_incremental" \
+        --output "$LLM_PARSED_OUTPUT" \
+        --fail-output "$LLM_FAIL_OUTPUT"
+else
+    echo "[llm] skipped; pass --update-llm-parsed to enable inference"
 fi
 
 echo "[success] NVD update pipeline completed"
