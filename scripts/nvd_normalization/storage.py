@@ -23,6 +23,7 @@ from .rules import (
     SCHEMA_VERSION,
     canonical_json,
     normalize_key,
+    normalize_product_key,
     stable_hash,
 )
 from .versioning import CompiledExpression
@@ -243,7 +244,7 @@ class Store:
         evidence_basis: str,
         label_priority: int,
     ) -> int:
-        vendor_key, product_key = normalize_key(vendor), normalize_key(product)
+        vendor_key, product_key = normalize_key(vendor), normalize_product_key(product)
         normalized_part = part if part in {"a", "o", "h"} else "unknown"
         cache_key = (vendor_key, product_key, normalized_part)
         cached = self._product_cache.get(cache_key)

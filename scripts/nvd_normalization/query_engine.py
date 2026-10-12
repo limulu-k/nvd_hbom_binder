@@ -14,7 +14,10 @@ import unicodedata
 
 from .identity import QueryIdentityResolver, IdentityResolution, resolve_query_products
 from .history_policy import HistoryConflictPolicy, HistoryPolicyDecision, HistoryPolicyError
-from .rules import AXES, CONTEXT_AXES, SCHEMA_VERSION, is_placeholder, normalize_key
+from .rules import (
+    AXES, CONTEXT_AXES, SCHEMA_VERSION, is_placeholder, normalize_key,
+    normalize_product_key,
+)
 from .versioning import (
     Segment,
     Tri,
@@ -381,7 +384,7 @@ class QueryEngine:
     def _products(
         self, vendor: str, product: str, *, axis_policy: str
     ) -> IdentityResolution:
-        cache_key = (normalize_key(vendor), normalize_key(product), axis_policy)
+        cache_key = (normalize_key(vendor), normalize_product_key(product), axis_policy)
         cached = self._identity_resolution_cache.get(cache_key)
         if cached is not None:
             return cached

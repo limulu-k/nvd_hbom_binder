@@ -322,3 +322,51 @@ Positive 존재 여부를 종료 코드로 판단해서는 안 된다. JSON의 p
 - Strict 정책에서 제외된 불확실 결과는 안전 판정이 아니다.
 - Clovery 결과도 importer confidence 하한을 통과하지 못하면 NVD 범위를 덮지 않는다.
 - --all-states는 출력만 바꾸며 DB 내용이나 판정 정책을 바꾸지 않는다.
+
+## 12. namespace가 있는 product 조회
+
+쿼리 옵션과 SQLite schema v5는 기존 계약을 유지한다. 별도 패키지 옵션·column·테이블을
+추가하지 않는다. 기존 vendor를 유지하고 `product_entity.canonical_product`와
+`product_key`에 `@scope/package` 전체 이름을 보존한다. 일반 제품은 기존 NFKC·대소문자·
+구분자 정규화를 적용한다. scoped product의 `/`, `-`, `_`, `.`는 서로 다른 패키지를
+구분하므로 제거하거나 같은 문자로 접지 않는다.
+
+```bash
+python3 utils/query2nvddb.py '@fastify/static' 1.0.0 \
+  --vendor '@fastify/static' --all-states --format json
+
+# 기존 product-only 입력도 그대로 사용한다.
+python3 utils/query2nvddb.py '@fastify/static' --format json
+```
+
+`@scope/core`, `scope-core`, `@scope/helper-one`, `@scope/helper_one`는 별도 product다.
+scoped 이름은 정확한 전체 이름으로 조회하고, namespace 또는 sibling을 유사도·별칭으로
+대체하지 않는다. CNA의 product가 상위 이름이고 명시적인 npm packageName이 scoped
+좌표인 경우 그 좌표로 product를 저장한다. 원 vendor는 유지하며 부모 이름을 자식의
+동일성 alias로 등록하지 않는다. 구조화된 패키지 근거가 없는 `babel`에서 설명 문자열만으로
+`@babel/core`를 만들지는 않는다.
+
+기존 DB의 정규화 키도 canonical product의 전체 scoped 이름이 일치하면 읽을 수 있다.
+이미 같은 product 행에 합쳐진 원문 근거를 완전히 분리하려면 새 코드로 DB를 재빌드해야
+한다. 이번에는 앞서 추가한 패키지 인덱스 테이블·메타데이터를 운영 DB에서 제거했고,
+기존 제품·binding·Clovery 자료는 재빌드로 교체하지 않았다.
+
+기존 운영 DB의 24개 조회 비교에서 22개는 수정 전과 전체 JSON이 같았다.
+vendor 없는 scoped 조회 2개만 다른 형식의 제품 연결을 필터링했다. 예를 들어
+`@fastify/static`은 `fastify-static`의 후보가 제외되어 6건에서 4건으로 줄었다.
+동일한 실제 CVE 원문 14건으로 수정 전·후 DB를 별도로 빌드했고,
+양쪽 모두 application table 32개와 모든 column 구성이 같았다.
+일반 제품 63행·source claim 212행·assertion 177행·binding 82행은
+생성 시각을 제외한 저장 값이 같고, 일반 제품 조회 12건의 전체 JSON도 같았다.
+이 재빌드 비교는 `--without-llm`으로 수행했다.
+
+```bash
+python3 -m pytest -q utils/test_product_namespace.py
+python3 -m pytest -q utils
+```
+
+기존 테스트를 포함한 65개 테스트가 통과했다. 검증 자료는
+`logs/product_namespace/legacy_query_comparison.log`,
+`logs/product_namespace/rebuilt_db_comparison.log`, `logs/product_namespace/tests.log`에 있다.
+앞선 패키지 인덱스 구현과 로그는 `logs/package_scope/`에 과거 자료로 보존되어 있으며
+현재 실행 경로에서 사용하지 않는다.

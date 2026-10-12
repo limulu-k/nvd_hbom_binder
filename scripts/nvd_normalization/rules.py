@@ -281,6 +281,7 @@ RULE_CONFIGURATION: dict[str, Any] = {
         "placeholder_values": sorted(PLACEHOLDERS),
         "automatic_merge": "exact_plus_evidence_backed_resolution",
         "relation_is_identity": False,
+        "scoped_product_keys": "exact_namespace_and_package_separators",
         "p1_product_alias_groups": [
             [list(identity) for identity in group]
             for group in P1_PRODUCT_ALIAS_GROUPS
@@ -360,6 +361,26 @@ def normalize_key(value: str | None) -> str:
     normalized = unicodedata.normalize("NFKC", value).casefold().strip()
     normalized = re.sub(r"[^\w]+", "_", normalized, flags=re.UNICODE)
     return normalized.strip("_")
+
+
+def scoped_product_key(value: str | None) -> str | None:
+    """Recognize a full scope coordinate without folding package separators."""
+    if not isinstance(value, str):
+        return None
+    key = unicodedata.normalize("NFKC", value).casefold().strip()
+    if re.fullmatch(r"@[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*", key):
+        return key
+    return None
+
+
+def normalize_product_key(value: str | None) -> str:
+    """Keep scoped boundaries; retain the existing rules for other products."""
+    return scoped_product_key(value) or normalize_key(value)
+
+
+def same_product_scope(left: str | None, right: str | None) -> bool:
+    a, b = scoped_product_key(left), scoped_product_key(right)
+    return a == b if a or b else True
 
 
 _PLACEHOLDER_KEYS = frozenset(normalize_key(item) for item in PLACEHOLDERS)

@@ -31,6 +31,9 @@ from .rules import (
     SOFT_GENERIC_ANCHORS,
     canonical_json,
     normalize_key,
+    normalize_product_key,
+    scoped_product_key,
+    same_product_scope,
     stable_hash,
 )
 
@@ -237,6 +240,11 @@ def derived_keys(value: str | None) -> dict[str, str]:
     return {name: key for name, key in keys.items() if key != ""}
 
 
+def derived_product_keys(value: str | None) -> dict[str, str]:
+    scoped = scoped_product_key(value)
+    return {"safe": scoped, "separator": scoped} if scoped else derived_keys(value)
+
+
 def _legacy_rewrite(identity: tuple[str, str]) -> tuple[str, str]:
     vendor, product = identity
     policy = P1_PRODUCT_KEY_REWRITES.get(vendor)
@@ -262,7 +270,7 @@ def _self_brand_relation(vendor: str, product: str) -> str | None:
     """Describe a deterministic vendor-name/product-name brand relation."""
 
     vendor_key = normalize_key(vendor)
-    product_key = normalize_key(product)
+    product_key = normalize_product_key(product)
     if vendor_key == product_key:
         return "exact"
     if separator_key(vendor_key) == separator_key(product_key):
@@ -579,7 +587,7 @@ def _registry_nodes(
             (vendor,),
         )
         return [int(row[0]) for row in rows]
-    product = normalize_key(endpoint.get("product"))
+    product = normalize_product_key(endpoint.get("product"))
     part = str(endpoint.get("part") or "*")
     sql = """SELECT node_id FROM identity_node
              WHERE scope_kind='product' AND vendor_key=? AND product_key=?"""
@@ -602,6 +610,14 @@ def _alias_nodes_compatible(
 ) -> bool:
     if scope == "vendor":
         return True
+    products = list(connection.execute(
+        "SELECT product_key FROM identity_node WHERE node_id IN (?,?) ORDER BY node_id",
+        (left, right),
+    ))
+    if len(products) == 2 and not same_product_scope(
+        str(products[0][0]), str(products[1][0])
+    ):
+        return False
     left_part, right_part = _node_part(connection, left), _node_part(connection, right)
     return left_part == right_part or "unknown" in {left_part, right_part}
 
@@ -617,7 +633,8 @@ def _registry_alias_keys(
     raw = endpoint.get("vendor") if scope == "vendor" else endpoint.get("product")
     origin = "registry_strict" if strict_eligible else "registry_non_strict"
     for node_id in target_nodes:
-        for kind, value in derived_keys(None if raw is None else str(raw)).items():
+        keys = derived_product_keys(raw) if scope == "product" else derived_keys(raw)
+        for kind, value in keys.items():
             if kind not in {"safe", "separator"}:
                 continue
             _add_key(
@@ -1846,6 +1863,8 @@ def _promote_product_typo_edges(
         )
         left_compact = _compact_typo_key(left_key)
         right_compact = _compact_typo_key(right_key)
+        if not same_product_scope(left_key, right_key):
+            continue
         if min(len(left_compact), len(right_compact)) < int(
             policy["min_compact_length"]
         ):
@@ -2028,7 +2047,7 @@ def _queue_llm_identity_candidates(connection: sqlite3.Connection) -> int:
         vendor = str(vendor_claim['extracted_value'])
         product = str(product_claim['extracted_value'])
         vendor_key = normalize_key(vendor)
-        product_key = normalize_key(product)
+        product_key = normalize_product_key(product)
         if (vendor_key, product_key) in exact_products:
             return 0
         candidates = separator_candidates.get(
@@ -2124,7 +2143,7 @@ def materialize_identity_resolution(
         )
         product_nodes[product_id] = product_node
         product_vendor_nodes[product_id] = vendor_node
-        for kind, value in derived_keys(str(row["canonical_product"])).items():
+        for kind, value in derived_product_keys(str(row["canonical_product"])).items():
             _add_key(
                 connection,
                 node_id=product_node,
@@ -2160,7 +2179,7 @@ def materialize_identity_resolution(
                 origin="raw_alias_observation",
                 source_alias_id=alias_id,
             )
-        for kind, value in derived_keys(str(row["product_raw"])).items():
+        for kind, value in derived_product_keys(str(row["product_raw"])).items():
             _add_key(
                 connection,
                 node_id=product_node,
@@ -2644,8 +2663,8 @@ class _QueryProductCandidate:
     name: _QueryName
 
 
-def _query_name(value: str | None) -> _QueryName:
-    safe = normalize_key(value)
+def _query_name(value: str | None, *, product: bool = False) -> _QueryName:
+    safe = normalize_product_key(value) if product else normalize_key(value)
     tokens = _tokens(safe)
     return _QueryName(
         safe=safe,
@@ -2685,6 +2704,8 @@ def _query_name_match(
         return None
     if query.safe == candidate.safe:
         return _QueryNameMatch("exact", 1.0, 1.0, 1.0)
+    if not same_product_scope(query.safe, candidate.safe):
+        return None
     if query.compact == candidate.compact:
         return _QueryNameMatch("separator", 0.99, 1.0, 1.0)
     if (
@@ -2881,7 +2902,7 @@ class QueryIdentityResolver:
                 part=str(row["part"]),
                 canonical_vendor=str(row["canonical_vendor"]),
                 canonical_product=str(row["canonical_product"]),
-                name=_query_name(str(row["product_key"])),
+                name=_query_name(str(row["canonical_product"]), product=True),
             )
             for row in rows
         )
@@ -2924,7 +2945,7 @@ class QueryIdentityResolver:
         vendor_by_cluster = {
             candidate.cluster_id: match for candidate, match in vendor_matches
         }
-        product_query = _query_name(product)
+        product_query = _query_name(product, product=True)
         vendor_query = _query_name(vendor)
         grouped: dict[tuple[int, str], dict[str, Any]] = {}
         for row in self.products_for_vendor_clusters(vendor_by_cluster):
@@ -3187,9 +3208,9 @@ def resolve_query_products(
     axis_policy: str,
     query_resolver: QueryIdentityResolver | None = None,
 ) -> IdentityResolution:
-    vendor_key, product_key = normalize_key(vendor), normalize_key(product)
+    vendor_key, product_key = normalize_key(vendor), normalize_product_key(product)
     vendor_clusters = _matching_vendor_clusters(connection, vendor)
-    product_keys = derived_keys(product)
+    product_keys = derived_product_keys(product)
     seeds: dict[int, dict[str, Any]] = {}
     fuzzy_suggestions: tuple[Mapping[str, Any], ...] = ()
     query_fuzzy = False
@@ -3198,10 +3219,12 @@ def resolve_query_products(
     for row in connection.execute(
         """SELECT n.node_id,p.* FROM product_entity p
            JOIN identity_node n USING(product_id)
-           WHERE p.vendor_key=? AND p.product_key=?
+           WHERE p.vendor_key=? AND p.product_key IN (?,?)
            ORDER BY p.product_id""",
-        (vendor_key, product_key),
+        (vendor_key, product_key, normalize_key(product)),
     ):
+        if not same_product_scope(product, str(row["canonical_product"])):
+            continue
         seeds[int(row["node_id"])] = {
             "tier": "T0_EXACT",
             "strict": True,
@@ -3233,6 +3256,8 @@ def resolve_query_products(
                        OR (k.key_kind='separator' AND k.key_value=?))"""
         params = [*vendor_clusters, product_keys.get("safe", ""), product_keys.get("separator", "")]
         for row in connection.execute(sql, tuple(params)):
+            if not same_product_scope(product, str(row["canonical_product"])):
+                continue
             vendor_tier = vendor_clusters[int(row["vendor_cluster"])]
             origin = str(row["origin"])
             if str(row["key_kind"]) == "safe" and origin == "canonical_entity":
@@ -3250,7 +3275,7 @@ def resolve_query_products(
                 "matched_key_kind": str(row["key_kind"]),
             }
 
-    if not seeds:
+    if not seeds and not scoped_product_key(product):
         resolver = query_resolver or QueryIdentityResolver(connection)
         seeds, fuzzy_suggestions, fuzzy_ambiguous = resolver.fuzzy_product_seeds(
             vendor=vendor,
@@ -3341,6 +3366,8 @@ def resolve_query_products(
             (node,),
         ).fetchone()
         if row is None:
+            continue
+        if not same_product_scope(product, str(row["canonical_product"])):
             continue
         strict = bool(meta["strict"]) and not ambiguous
         tier = str(meta["tier"])

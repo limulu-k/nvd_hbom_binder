@@ -13,6 +13,7 @@ import sqlite3
 import sys
 import time
 from typing import Any, Callable, Collection, Iterable, Mapping, Sequence
+from urllib.parse import urlparse
 
 from .identity import materialize_identity_resolution, reclassify_alias_roles
 from .llm import (
@@ -46,6 +47,8 @@ from .rules import (
     evidence_wins,
     is_placeholder,
     normalize_key,
+    normalize_product_key,
+    scoped_product_key,
     stable_hash,
 )
 from .storage import StorageError, Store
@@ -270,12 +273,12 @@ def _cpe_axes(cpe: CPE23, role: str) -> dict[str, tuple[str, str | None]]:
     if role in {"DOWNSTREAM_DISTRIBUTION", "DOWNSTREAM_PACKAGE"}:
         axes["distribution"] = (
             "EXACT",
-            f"{normalize_key(cpe.vendor)}:{normalize_key(cpe.product)}",
+            f"{normalize_key(cpe.vendor)}:{normalize_product_key(cpe.product)}",
         )
     if role == "BUNDLED_COMPONENT":
         axes["component"] = (
             "EXACT",
-            f"{normalize_key(cpe.vendor)}:{normalize_key(cpe.product)}",
+            f"{normalize_key(cpe.vendor)}:{normalize_product_key(cpe.product)}",
         )
     return axes
 
@@ -291,7 +294,22 @@ def _canonical_cna_identity(item: CNAAffected) -> tuple[str, str] | None:
     if is_placeholder(item.product):
         return None
     vendor = item.product if is_placeholder(item.vendor) else item.vendor
-    return vendor, item.product
+    product = item.product
+    package = scoped_product_key(item.package_name)
+    if package and not scoped_product_key(product):
+        try:
+            collection = urlparse(item.collection_url or "")
+            npm_collection = collection.hostname in {
+                "registry.npmjs.org", "www.npmjs.com", "npmjs.com"
+            }
+        except ValueError:
+            npm_collection = False
+        npm_source = (
+            npm_collection or str(item.raw.get("ecosystem", "")).casefold() == "npm"
+        )
+        if npm_source:
+            product = package
+    return vendor, product
 
 
 def _cna_axes(
@@ -393,7 +411,7 @@ def _role(
             return "REQUIRED_HARDWARE", "vulnerable_flag_false"
         return "REQUIRED_PLATFORM", "vulnerable_flag_false"
     vendor_key = normalize_key(match.cpe.vendor)
-    product_key = normalize_key(match.cpe.product)
+    product_key = normalize_product_key(match.cpe.product)
     identity = (vendor_key, product_key)
     if _is_distribution_product(vendor_key, product_key):
         return "DOWNSTREAM_DISTRIBUTION", "known_distribution_product"
@@ -1794,13 +1812,13 @@ def build_database(
                         store.add_product_alias(
                             product_id=product_id,
                             vendor=item.vendor,
-                            product=item.product,
+                            product=canonical_product,
                             source_family="cna_structured",
                             evidence_basis="authoritative_structured_raw",
                         )
                         identity_key = (
                             normalize_key(canonical_vendor),
-                            normalize_key(canonical_product),
+                            normalize_product_key(canonical_product),
                         )
                         direct_products.add(identity_key)
                         cna_product_ids[item.pointer] = product_id
@@ -1860,7 +1878,7 @@ def build_database(
                                         if match.vulnerable
                                         else "unknown"
                                     ),
-                                    product_key=normalize_key(match.cpe.product),
+                                    product_key=normalize_product_key(match.cpe.product),
                                     version_start_including=(
                                         match.version_start_including
                                     ),
@@ -1920,7 +1938,7 @@ def build_database(
                             compiled = compile_nvd(
                                 cpe_version=match.cpe.version,
                                 status="affected" if match.vulnerable else "unknown",
-                                product_key=normalize_key(match.cpe.product),
+                                product_key=normalize_product_key(match.cpe.product),
                                 version_start_including=match.version_start_including,
                                 version_start_excluding=match.version_start_excluding,
                                 version_end_including=match.version_end_including,
@@ -1951,7 +1969,7 @@ def build_database(
                             ):
                                 nvd_identity = (
                                     normalize_key(match.cpe.vendor),
-                                    normalize_key(match.cpe.product),
+                                    normalize_product_key(match.cpe.product),
                                 )
                                 nvd_direct_ranges[nvd_identity].extend(
                                     segment
@@ -2365,7 +2383,7 @@ def build_database(
                         ):
                             counters["llm_bindings_rejected_identity"] += 1
                             continue
-                        product_key = normalize_key(llm_binding.product)
+                        product_key = normalize_product_key(llm_binding.product)
                         product_id = store.product_id(
                             llm_binding.vendor,
                             llm_binding.product,

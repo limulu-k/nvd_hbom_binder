@@ -21,7 +21,9 @@ from scripts.nvd_normalization.query_engine import (
     QueryEngine,
     QueryError,
 )
-from scripts.nvd_normalization.rules import normalize_key
+from scripts.nvd_normalization.rules import (
+    normalize_key, normalize_product_key, same_product_scope,
+)
 
 
 STATE_RANK = {
@@ -94,6 +96,15 @@ def _make_group(
     product_id = int(row["product_id"])
     cluster_id = row.get("cluster_id")
     ids = product_ids or _member_ids(engine.connection, cluster_id, product_id)
+    identities = engine.connection.execute(
+        "SELECT product_id,canonical_product FROM product_entity WHERE product_id IN ("
+        + ",".join("?" for _ in ids) + ")", ids,
+    )
+    allowed = {
+        int(item[0]) for item in identities
+        if same_product_scope(str(row["product"]), str(item[1]))
+    }
+    ids = [item for item in ids if item in allowed]
     marks = ",".join("?" for _ in ids)
     cve_count = int(
         engine.connection.execute(
@@ -165,13 +176,15 @@ def _find_groups(
              LEFT JOIN identity_cluster_member m USING(product_id)
              LEFT JOIN identity_cluster c USING(cluster_id)
              LEFT JOIN current_binding b USING(product_id)
-            WHERE p.product_key=?
+            WHERE p.product_key IN (?,?)
             GROUP BY p.product_id
             ORDER BY direct_cve_count DESC,p.vendor_key""",
-        (normalize_key(product),),
+        (normalize_product_key(product), normalize_key(product)),
     ).fetchall()
     selected: dict[tuple[str, int], sqlite3.Row] = {}
     for row in rows:
+        if not same_product_scope(product, str(row["product"])):
+            continue
         key = (
             ("cluster", int(row["cluster_id"]))
             if row["cluster_id"] is not None
