@@ -403,6 +403,14 @@ JSON 출력:
   --format json
 ```
 
+셸 래퍼는 JSON 앞에 실행 명령을 표준 출력으로 표시한다. 순수 JSON이 필요한 자동화에서는 Python 조회기를 직접 사용한다.
+
+```bash
+python scripts/query_repo_cve.py wolfSSL@wolfssl --version 5.7.0 --format json
+```
+
+상세 사용법은 [셸 가이드](guide_book/05_query_repo_cve_guide.md)와 [Python 가이드](guide_book/05_query_repo_cve_python_guide.md)를 참고한다.
+
 ---
 
 # 4. Benchmark
@@ -445,5 +453,6 @@ guide_book/
 ├── 02-2_run_benchmark_builds.md
 ├── 03_build_git_repo_cve_mapping.md
 ├── 04_apply_clovery_results_guide.md
-└── 05_query_repo_cve_guide.md
+├── 05_query_repo_cve_guide.md
+└── 05_query_repo_cve_python_guide.md
 ```
